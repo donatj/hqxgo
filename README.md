@@ -50,5 +50,5 @@ Only the 4× filter is implemented. The 2× and 3× filters are not included.
 ## License
 
 The port is derived from hqx-java. It is available under the GNU Lesser General
-Public License, version 3 or later. See [LGPL-3.0.txt](LGPL-3.0.txt) and
+Public License, version 3 or later. See [LICENSE](LICENSE) and
 [GPL-3.0.txt](GPL-3.0.txt).
