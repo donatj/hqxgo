@@ -4,7 +4,19 @@ HQX Go scales pixel art using the HQ4x filter. It enlarges an image by four
 in each dimension. It is a port of [hqx-java](https://github.com/Arcnor/hqx-java).
 hqx-java is a port of hqxSharp, which is a port of the original hqx project.
 
-## Usage
+## Command line
+
+Install the command with `go install github.com/donatj/hqxgo/cmd/hqxgo@latest`.
+Run it with an input path and an output path:
+
+```sh
+hqxgo input.png output.png
+```
+
+The command accepts PNG, JPEG, and GIF images. It writes PNG output. For an
+animated GIF, it uses the first frame. Existing output files are overwritten.
+
+## Library usage
 
 ```go
 import (
