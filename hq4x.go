@@ -2,7 +2,7 @@
 // Copyright 2003 Maxim Stepin, 2010 Cameron Zemek,
 // 2011 Tamme Schichler, and 2012 A. Eduardo García.
 // Licensed under the GNU Lesser General Public License, version 3 or later.
-// See LGPL-3.0.txt.
+// See LICENSE.
 
 package hq4x
 
