@@ -1,96 +1,32 @@
+// Derived from hqx-java.
+// Copyright 2003 Maxim Stepin, 2010 Cameron Zemek,
+// 2011 Tamme Schichler, and 2012 A. Eduardo García.
+// Licensed under the GNU Lesser General Public License, version 3 or later.
+// See LGPL-3.0.txt.
+
+// Package interpolation blends packed ARGB colors.
 package interpolation
 
-/**
-* Helper class to interpolate colors. Nothing to see here, move along...
- */
-
-const mask4 int = -16777216 //0xFF000000
-const mask2 int = 65280     //0x0000FF00
-const mask13 int = 16711935 //0x00FF00FF
-
-// return statements:
-//	 1. line: green
-//	 2. line: red and blue
-//	 3. line: alpha
-
-func Mix3To1(c1 int, c2 int) int {
-	//return (c1*3+c2) >> 2;
-	if c1 == c2 {
-		return c1
+// mix blends each channel independently. The weights must add up to a power of two.
+func mix(c1, c2, c3 int, w1, w2, w3 uint32, shift uint) int {
+	a, b, c := uint32(c1), uint32(c2), uint32(c3)
+	var result uint32
+	for _, n := range [...]uint{0, 8, 16, 24} {
+		value := (((a>>n)&255)*w1 + ((b>>n)&255)*w2 + ((c>>n)&255)*w3) >> shift
+		result |= value << n
 	}
-	return ((((c1&mask2)*3 + (c2 & mask2)) >> 2) & mask2) |
-		((((c1&mask13)*3 + (c2 & mask13)) >> 2) & mask13) |
-		((((c1&mask4)>>2)*3 + ((c2 & mask4) >> 2)) & mask4)
+	return int(result)
 }
 
-func Mix2To1To1(c1 int, c2 int, c3 int) int {
-	//return (c1*2+c2+c3) >> 2;
-	return ((((c1&mask2)*2 + (c2 & mask2) + (c3 & mask2)) >> 2) & mask2) |
-		((((c1&mask13)*2 + (c2 & mask13) + (c3 & mask13)) >> 2) & mask13) |
-		((((c1&mask4)>>2)*2 + ((c2 & mask4) >> 2) + ((c3 & mask4) >> 2)) & mask4)
-}
+func Mix3To1(c1, c2 int) int        { return mix(c1, c2, 0, 3, 1, 0, 2) }
+func Mix2To1To1(c1, c2, c3 int) int { return mix(c1, c2, c3, 2, 1, 1, 2) }
+func Mix7To1(c1, c2 int) int        { return mix(c1, c2, 0, 7, 1, 0, 3) }
+func Mix2To7To7(c1, c2, c3 int) int { return mix(c1, c2, c3, 2, 7, 7, 4) }
+func MixEven(c1, c2 int) int        { return mix(c1, c2, 0, 1, 1, 0, 1) }
 
-func Mix7To1(c1 int, c2 int) int {
-	//return (c1*7+c2)/8;
-	if c1 == c2 {
-		return c1
-	}
-	return ((((c1&mask2)*7 + (c2 & mask2)) >> 3) & mask2) |
-		((((c1&mask13)*7 + (c2 & mask13)) >> 3) & mask13) |
-		((((c1&mask4)>>3)*7 + ((c2 & mask4) >> 3)) & mask4)
-}
-
-func Mix2To7To7(c1 int, c2 int, c3 int) int {
-	//return (c1*2+(c2+c3)*7)/16;
-	return ((((c1&mask2)*2 + (c2&mask2)*7 + (c3&mask2)*7) >> 4) & mask2) |
-		((((c1&mask13)*2 + (c2&mask13)*7 + (c3&mask13)*7) >> 4) & mask13) |
-		((((c1&mask4)>>4)*2 + ((c2&mask4)>>4)*7 + ((c3&mask4)>>4)*7) & mask4)
-}
-
-func MixEven(c1 int, c2 int) int {
-	//return (c1+c2) >> 1;
-	if c1 == c2 {
-		return c1
-	}
-	return ((((c1 & mask2) + (c2 & mask2)) >> 1) & mask2) |
-		((((c1 & mask13) + (c2 & mask13)) >> 1) & mask13) |
-		((((c1 & mask4) >> 1) + ((c2 & mask4) >> 1)) & mask4)
-}
-
-func Mix4To2To1(c1 int, c2 int, c3 int) int {
-	//return (c1*5+c2*2+c3)/8;
-	return ((((c1&mask2)*5 + (c2&mask2)*2 + (c3 & mask2)) >> 3) & mask2) |
-		((((c1&mask13)*5 + (c2&mask13)*2 + (c3 & mask13)) >> 3) & mask13) |
-		((((c1&mask4)>>3)*5 + ((c2&mask4)>>3)*2 + ((c3 & mask4) >> 3)) & mask4)
-}
-
-func Mix6To1To1(c1 int, c2 int, c3 int) int {
-	//return (c1*6+c2+c3)/8;
-	return ((((c1&mask2)*6 + (c2 & mask2) + (c3 & mask2)) >> 3) & mask2) |
-		((((c1&mask13)*6 + (c2 & mask13) + (c3 & mask13)) >> 3) & mask13) |
-		((((c1&mask4)>>3)*6 + ((c2 & mask4) >> 3) + ((c3 & mask4) >> 3)) & mask4)
-}
-
-func Mix5To3(c1 int, c2 int) int {
-	//return (c1*5+c2*3)/8;
-	if c1 == c2 {
-		return c1
-	}
-	return ((((c1&mask2)*5 + (c2&mask2)*3) >> 3) & mask2) |
-		((((c1&mask13)*5 + (c2&mask13)*3) >> 3) & mask13) |
-		((((c1&mask4)>>3)*5 + ((c2&mask4)>>3)*3) & mask4)
-}
-
-func Mix2To3To3(c1 int, c2 int, c3 int) int {
-	//return (c1*2+(c2+c3)*3)/8;
-	return ((((c1&mask2)*2 + (c2&mask2)*3 + (c3&mask2)*3) >> 3) & mask2) |
-		((((c1&mask13)*2 + (c2&mask13)*3 + (c3&mask13)*3) >> 3) & mask13) |
-		((((c1&mask4)>>3)*2 + ((c2&mask4)>>3)*3 + ((c3&mask4)>>3)*3) & mask4)
-}
-
-func Mix14To1To1(c1 int, c2 int, c3 int) int {
-	//return (c1*14+c2+c3)/16;
-	return ((((c1&mask2)*14 + (c2 & mask2) + (c3 & mask2)) >> 4) & mask2) |
-		((((c1&mask13)*14 + (c2 & mask13) + (c3 & mask13)) >> 4) & mask13) |
-		((((c1&mask4)>>4)*14 + ((c2 & mask4) >> 4) + ((c3 & mask4) >> 4)) & mask4)
-}
+// Mix4To2To1 uses weights 5:2:1, matching the original implementation.
+func Mix4To2To1(c1, c2, c3 int) int  { return mix(c1, c2, c3, 5, 2, 1, 3) }
+func Mix6To1To1(c1, c2, c3 int) int  { return mix(c1, c2, c3, 6, 1, 1, 3) }
+func Mix5To3(c1, c2 int) int         { return mix(c1, c2, 0, 5, 3, 0, 3) }
+func Mix2To3To3(c1, c2, c3 int) int  { return mix(c1, c2, c3, 2, 3, 3, 3) }
+func Mix14To1To1(c1, c2, c3 int) int { return mix(c1, c2, c3, 14, 1, 1, 4) }

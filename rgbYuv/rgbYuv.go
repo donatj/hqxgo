@@ -1,31 +1,22 @@
+// Derived from hqx-java.
+// Copyright 2003 Maxim Stepin, 2010 Cameron Zemek,
+// 2011 Tamme Schichler, and 2012 A. Eduardo García.
+// Licensed under the GNU Lesser General Public License, version 3 or later.
+// See LGPL-3.0.txt.
+
+// Package rgbYuv converts packed RGB colors to the YUV values used by HQX.
 package rgbYuv
 
-var rgbMask int = 16777215 //0x00FFFFFF;
-var RGBtoYUV [16777216]int //0x1000000
-
-/**
- * Returns the 24bit YUV equivalent of the provided 24bit RGB color.<b>Any alpha component is dropped</b>
- *
- * @param rgb a 24bit rgb color
- * @return the corresponding 24bit YUV color
- */
+// GetYuv converts a packed RGB color to the YUV format used by HQX.
+// The alpha channel is ignored.
 func GetYuv(rgb int) int {
-	return RGBtoYUV[rgb&rgbMask]
+	c := uint32(rgb)
+	r, g, b := float64((c>>16)&255), float64((c>>8)&255), float64(c&255)
+	y := int(0.299*r + 0.587*g + 0.114*b)
+	u := int(-0.169*r-0.331*g+0.500*b) + 128
+	v := int(0.500*r-0.419*g-0.081*b) + 128
+	return y<<16 | u<<8 | v
 }
 
-/**
- * Calculates the lookup table. <b>MUST</b> be called (only once) before doing anything else
- */
-func HqxInit() {
-	/* Initalize RGB to YUV lookup table */
-	var r, g, b, y, u, v int
-	for c := 16777216 - 1; c >= 0; c-- {
-		r = (c & 16711680) >> 16
-		g = (c & 65280) >> 8
-		b = c & 255
-		y = int(+0.299*float32(r) + 0.587*float32(g) + 0.114*float32(b))
-		u = int(-0.169*float32(r)-0.331*float32(g)+0.500*float32(b)) + 128
-		v = int(+0.500*float32(r)-0.419*float32(g)-0.081*float32(b)) + 128
-		RGBtoYUV[c] = (y << 16) | (u << 8) | v
-	}
-}
+// HqxInit is retained for compatibility. Conversion no longer needs a lookup table.
+func HqxInit() {}
