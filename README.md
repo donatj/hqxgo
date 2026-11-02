@@ -1,5 +1,7 @@
 # HQX Go
 
+[![CI](https://github.com/donatj/hqxgo/actions/workflows/ci.yml/badge.svg)](https://github.com/donatj/hqxgo/actions/workflows/ci.yml)
+
 HQX Go scales pixel art using the HQ4x filter. It enlarges an image by four
 in each dimension. It is a port of [hqx-java](https://github.com/Arcnor/hqx-java).
 hqx-java is a port of hqxSharp, which is a port of the original hqx project.
