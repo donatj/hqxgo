@@ -1,9 +1,16 @@
+// Derived from hqx-java.
+// Copyright 2003 Maxim Stepin, 2010 Cameron Zemek,
+// 2011 Tamme Schichler, and 2012 A. Eduardo García.
+// Licensed under the GNU Lesser General Public License, version 3 or later.
+// See LGPL-3.0.txt.
+
 package hq4x
 
 import (
+	"math"
+
 	"github.com/donatj/hqxgo/interpolation"
 	"github.com/donatj/hqxgo/rgbYuv"
-	"math"
 )
 
 // public class Hqx_4x extends Hqx {
@@ -556,7 +563,25 @@ func case25(dp []int, dpIdx int, dpL int, w [9]int) {
  * @param wrapX used for images that can be seamlessly repeated horizontally
  * @param wrapY used for images that can be seamlessly repeated vertically
  */
-func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV int, trA int, wrapX bool, wrapY bool) {
+// Hq4x_32_rb scales packed, non-premultiplied ARGB pixels by four.
+// sp and dp must not overlap. dp must hold at least 16 pixels per source pixel.
+// Thresholds are in the range 0 to 255. Invalid dimensions, thresholds, or
+// buffer sizes cause a panic. Empty images are allowed.
+func Hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV int, trA int, wrapX bool, wrapY bool) {
+	maxInt := int(^uint(0) >> 1)
+	if Xres < 0 || Yres < 0 || Xres > maxInt/4 || Yres > maxInt/4 || (Xres != 0 && Yres > maxInt/16/Xres) {
+		panic("hqx: invalid image dimensions")
+	}
+	if trY < 0 || trY > 255 || trU < 0 || trU > 255 || trV < 0 || trV > 255 || trA < 0 || trA > 255 {
+		panic("hqx: thresholds must be between 0 and 255")
+	}
+	pixels := Xres * Yres
+	if len(sp) < pixels || len(dp) < pixels*16 {
+		panic("hqx: image buffer is too small")
+	}
+	if pixels == 0 {
+		return
+	}
 	spIdx := 0
 	dpIdx := 0
 	//Don't shift trA, as it uses shift right instead of a mask for comparisons.
@@ -644,124 +669,72 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 			}
 
 			switch pattern {
-			case 0:
-			case 1:
-			case 4:
-			case 32:
-			case 128:
-			case 5:
-			case 132:
-			case 160:
-			case 33:
-			case 129:
-			case 36:
-			case 133:
-			case 164:
-			case 161:
-			case 37:
-			case 165:
+			case 0, 1, 4, 32, 128, 5, 132, 160, 33, 129, 36, 133, 164, 161, 37, 165:
 				{
 					case0(dp, dpIdx, dpL, w)
 					break
 				}
-			case 2:
-			case 34:
-			case 130:
-			case 162:
+			case 2, 34, 130, 162:
 				{
 					case2(dp, dpIdx, dpL, w)
 					break
 				}
-			case 16:
-			case 17:
-			case 48:
-			case 49:
+			case 16, 17, 48, 49:
 				{
 					case16(dp, dpIdx, dpL, w)
 					break
 				}
-			case 64:
-			case 65:
-			case 68:
-			case 69:
+			case 64, 65, 68, 69:
 				{
 					case64(dp, dpIdx, dpL, w)
 					break
 				}
-			case 8:
-			case 12:
-			case 136:
-			case 140:
+			case 8, 12, 136, 140:
 				{
 					case8(dp, dpIdx, dpL, w)
 					break
 				}
-			case 3:
-			case 35:
-			case 131:
-			case 163:
+			case 3, 35, 131, 163:
 				{
 					case3(dp, dpIdx, dpL, w)
 					break
 				}
-			case 6:
-			case 38:
-			case 134:
-			case 166:
+			case 6, 38, 134, 166:
 				{
 					case6(dp, dpIdx, dpL, w)
 					break
 				}
-			case 20:
-			case 21:
-			case 52:
-			case 53:
+			case 20, 21, 52, 53:
 				{
 					case20(dp, dpIdx, dpL, w)
 					break
 				}
-			case 144:
-			case 145:
-			case 176:
-			case 177:
+			case 144, 145, 176, 177:
 				{
 					case144(dp, dpIdx, dpL, w)
 					break
 				}
-			case 192:
-			case 193:
-			case 196:
-			case 197:
+			case 192, 193, 196, 197:
 				{
 					case192(dp, dpIdx, dpL, w)
 					break
 				}
-			case 96:
-			case 97:
-			case 100:
-			case 101:
+			case 96, 97, 100, 101:
 				{
 					case96(dp, dpIdx, dpL, w)
 					break
 				}
-			case 40:
-			case 44:
-			case 168:
-			case 172:
+			case 40, 44, 168, 172:
 				{
 					case40(dp, dpIdx, dpL, w)
 					break
 				}
-			case 9:
-			case 13:
-			case 137:
-			case 141:
+			case 9, 13, 137, 141:
 				{
 					case9(dp, dpIdx, dpL, w)
 					break
 				}
-			case 18:
-			case 50:
+			case 18, 50:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix3To1(w[4], w[0])
@@ -788,8 +761,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 80:
-			case 81:
+			case 80, 81:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -816,8 +788,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+1] = interpolation.Mix3To1(w[4], w[6])
 					break
 				}
-			case 72:
-			case 76:
+			case 72, 76:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[0])
@@ -844,8 +815,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 10:
-			case 138:
+			case 10, 138:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
@@ -882,36 +852,27 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					case24(dp, dpIdx, dpL, w)
 					break
 				}
-			case 7:
-			case 39:
-			case 135:
+			case 7, 39, 135:
 				{
 					case7(dp, dpIdx, dpL, w)
 					break
 				}
-			case 148:
-			case 149:
-			case 180:
+			case 148, 149, 180:
 				{
 					case148(dp, dpIdx, dpL, w)
 					break
 				}
-			case 224:
-			case 228:
-			case 225:
+			case 224, 228, 225:
 				{
 					case224(dp, dpIdx, dpL, w)
 					break
 				}
-			case 41:
-			case 169:
-			case 45:
+			case 41, 169, 45:
 				{
 					case41(dp, dpIdx, dpL, w)
 					break
 				}
-			case 22:
-			case 54:
+			case 22, 54:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix3To1(w[4], w[0])
@@ -937,8 +898,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 208:
-			case 209:
+			case 208, 209:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -964,8 +924,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+1] = interpolation.Mix3To1(w[4], w[6])
 					break
 				}
-			case 104:
-			case 108:
+			case 104, 108:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[0])
@@ -991,8 +950,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 11:
-			case 139:
+			case 11, 139:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = w[4]
@@ -1018,8 +976,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix2To1To1(w[4], w[7], w[5])
 					break
 				}
-			case 19:
-			case 51:
+			case 19, 51:
 				{
 					if diff(w[1], w[5], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[3])
@@ -1048,8 +1005,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 146:
-			case 178:
+			case 146, 178:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix3To1(w[4], w[0])
@@ -1078,8 +1034,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+2] = interpolation.Mix5To3(w[4], w[7])
 					break
 				}
-			case 84:
-			case 85:
+			case 84, 85:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -1108,8 +1063,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+1] = interpolation.Mix3To1(w[4], w[6])
 					break
 				}
-			case 112:
-			case 113:
+			case 112, 113:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -1138,8 +1092,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					}
 					break
 				}
-			case 200:
-			case 204:
+			case 200, 204:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[0])
@@ -1168,8 +1121,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[5])
 					break
 				}
-			case 73:
-			case 77:
+			case 73, 77:
 				{
 					if diff(w[7], w[3], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[1])
@@ -1198,8 +1150,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 42:
-			case 170:
+			case 42, 170:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
@@ -1228,8 +1179,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix2To1To1(w[4], w[7], w[5])
 					break
 				}
-			case 14:
-			case 142:
+			case 14, 142:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
@@ -1298,8 +1248,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					case25(dp, dpIdx, dpL, w)
 					break
 				}
-			case 26:
-			case 31:
+			case 26, 31:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = w[4]
@@ -1331,8 +1280,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 82:
-			case 214:
+			case 82, 214:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix3To1(w[4], w[0])
@@ -1364,8 +1312,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+1] = interpolation.Mix3To1(w[4], w[6])
 					break
 				}
-			case 88:
-			case 248:
+			case 88, 248:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[0])
@@ -1397,8 +1344,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					}
 					break
 				}
-			case 74:
-			case 107:
+			case 74, 107:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = w[4]
@@ -2198,8 +2144,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					}
 					break
 				}
-			case 55:
-			case 23:
+			case 55, 23:
 				{
 					if diff(w[1], w[5], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[3])
@@ -2228,8 +2173,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 182:
-			case 150:
+			case 182, 150:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix3To1(w[4], w[0])
@@ -2258,8 +2202,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+2] = interpolation.Mix5To3(w[4], w[7])
 					break
 				}
-			case 213:
-			case 212:
+			case 213, 212:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -2288,8 +2231,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+1] = interpolation.Mix3To1(w[4], w[6])
 					break
 				}
-			case 241:
-			case 240:
+			case 241, 240:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -2318,8 +2260,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					}
 					break
 				}
-			case 236:
-			case 232:
+			case 236, 232:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[0])
@@ -2348,8 +2289,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[5])
 					break
 				}
-			case 109:
-			case 105:
+			case 109, 105:
 				{
 					if diff(w[7], w[3], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[1])
@@ -2378,8 +2318,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 171:
-			case 43:
+			case 171, 43:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = w[4]
@@ -2408,8 +2347,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix2To1To1(w[4], w[7], w[5])
 					break
 				}
-			case 143:
-			case 15:
+			case 143, 15:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = w[4]
@@ -3474,8 +3412,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[5])
 					break
 				}
-			case 205:
-			case 201:
+			case 205, 201:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[1])
 					dp[dpIdx+1] = interpolation.Mix5To3(w[4], w[1])
@@ -3502,8 +3439,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[5])
 					break
 				}
-			case 174:
-			case 46:
+			case 174, 46:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = interpolation.Mix5To3(w[4], w[0])
@@ -3530,8 +3466,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix2To1To1(w[4], w[7], w[5])
 					break
 				}
-			case 179:
-			case 147:
+			case 179, 147:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[3])
 					dp[dpIdx+1] = interpolation.Mix7To1(w[4], w[3])
@@ -3558,8 +3493,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[7])
 					break
 				}
-			case 117:
-			case 116:
+			case 117, 116:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -3922,8 +3856,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[8])
 					break
 				}
-			case 237:
-			case 233:
+			case 237, 233:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[1])
 					dp[dpIdx+1] = interpolation.Mix5To3(w[4], w[1])
@@ -3947,8 +3880,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[5])
 					break
 				}
-			case 175:
-			case 47:
+			case 175, 47:
 				{
 					if diff(w[3], w[1], trY, trU, trV, trA) {
 						dp[dpIdx] = w[4]
@@ -3972,8 +3904,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix2To1To1(w[4], w[7], w[5])
 					break
 				}
-			case 183:
-			case 151:
+			case 183, 151:
 				{
 					dp[dpIdx] = interpolation.Mix5To3(w[4], w[3])
 					dp[dpIdx+1] = interpolation.Mix7To1(w[4], w[3])
@@ -3997,8 +3928,7 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 					dp[dpIdx+dpL+dpL+dpL+3] = interpolation.Mix5To3(w[4], w[7])
 					break
 				}
-			case 245:
-			case 244:
+			case 245, 244:
 				{
 					dp[dpIdx] = interpolation.Mix2To1To1(w[4], w[1], w[3])
 					dp[dpIdx+1] = interpolation.Mix4To2To1(w[4], w[1], w[3])
@@ -4690,9 +4620,9 @@ func hq4x_32_rb(sp []int, dp []int, Xres int, Yres int, trY int, trU int, trV in
 	}
 }
 
-const Ymask int = 16711680 //0x00FF0000;
-const Umask int = 65280    //0x0000FF00;
-const Vmask int = 255      //0x000000FF;
+const Ymask = 0x00FF0000
+const Umask = 0x0000FF00
+const Vmask = 0x000000FF
 
 func diff(c1 int, c2 int, trY int, trU int, trV int, trA int) bool {
 	YUV1 := rgbYuv.GetYuv(c1)
@@ -4701,5 +4631,5 @@ func diff(c1 int, c2 int, trY int, trU int, trV int, trA int) bool {
 	return ((math.Abs(float64((YUV1&Ymask)-(YUV2&Ymask))) > float64(trY)) ||
 		(math.Abs(float64((YUV1&Umask)-(YUV2&Umask))) > float64(trU)) ||
 		(math.Abs(float64((YUV1&Vmask)-(YUV2&Vmask))) > float64(trV)) ||
-		(math.Abs(float64(((c1 >> 24) - (c2 >> 24)))) > float64(trA)))
+		(math.Abs(float64(int(uint32(c1)>>24)-int(uint32(c2)>>24))) > float64(trA)))
 }
